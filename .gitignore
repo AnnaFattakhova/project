@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Data files (IMPORTANT)
+*.csv
+*.json
+
+# Generated results
+parsing_1/parsing_results/
+topic_sentiment_2/topic_sentiment_results/
+aspect_analysis_3/aspect_analysis_results/
+
+# Models
+models/
+topic_sentiment_2/models/

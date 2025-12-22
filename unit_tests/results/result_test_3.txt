@@ -1,0 +1,15 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.9, pytest-7.1.2, pluggy-1.0.0
+rootdir: C:\Users\User\project
+plugins: anyio-3.5.0
+collected 2 items
+
+unit_tests\tests\test_3.py ..                                            [100%]
+
+============================== warnings summary ===============================
+unit_tests/tests/test_3.py: 12 warnings
+  C:\Users\User\anaconda3\lib\site-packages\pymorphy2\units\base.py:70: DeprecationWarning: inspect.getargspec() is deprecated since Python 3.0, use inspect.signature() or inspect.getfullargspec()
+    args, varargs, kw, default = inspect.getargspec(cls.__init__)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 2 passed, 12 warnings in 8.28s ========================
