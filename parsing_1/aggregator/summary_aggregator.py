@@ -1,12 +1,10 @@
-# =====================================================
 # SUMMARY AGGREGATOR
 # Собирает:
 #   1) reviews_summary.csv  — агрегированная статистика по компаниям
-#   2) all_reviews.csv      — корпус всех отзывов (для ML)
-#   3) all_reviews.json     — то же в JSON
+#   2) all_reviews.csv      — корпус всех отзывов
+#   3) all_reviews.json     — корпус всех отзывов в JSON
 #
 # Использует Strategy для агрегации
-# =====================================================
 
 import os
 import json
@@ -25,10 +23,7 @@ class SummaryAggregator:
     def __init__(self, folder: str, strategy):
         self.folder = Path(folder)
         self.strategy = strategy
-
-    # =====================================================
-    # Вспомогательное
-    # =====================================================
+        
     def _load_json(self, path: Path) -> dict:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -38,9 +33,7 @@ class SummaryAggregator:
             if fname.suffix == ".json" and "final" in fname.name:
                 yield fname
 
-    # =====================================================
     # 1) Агрегация по компаниям (SUMMARY)
-    # =====================================================
     def summarize(self) -> pd.DataFrame:
         """
         Возвращает DataFrame:
@@ -72,9 +65,7 @@ class SummaryAggregator:
 
         return pd.DataFrame(rows)
 
-    # =====================================================
-    # 2) Корпус ВСЕХ отзывов (для ML)
-    # =====================================================
+    # 2) Корпус всех отзывов 
     def collect_all_reviews(self) -> pd.DataFrame:
         """
         Возвращает DataFrame:
@@ -108,9 +99,7 @@ class SummaryAggregator:
 
         return pd.DataFrame(all_rows)
 
-    # =====================================================
     # 3) Сохранение отдельных файлов
-    # =====================================================
     def save_reviews_csv(self, out_path: str):
         df = self.collect_all_reviews()
         df.to_csv(out_path, index=False, encoding="utf-8-sig")
@@ -120,15 +109,11 @@ class SummaryAggregator:
         df = self.collect_all_reviews()
         df.to_json(out_path, orient="records", force_ascii=False, indent=2)
         return out_path
-
-    # =====================================================
-    # 4) КОМБАЙН-МЕТОД (исправляет твою ошибку)
-    # =====================================================
+        
     def save_all_outputs(self, out_dir: str):
         """
         Сохраняет ВСЕ итоговые файлы разом.
-
-        Возвращает словарь с путями — удобно для логов.
+        Возвращает словарь с путями.
         """
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
