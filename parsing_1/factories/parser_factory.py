@@ -1,7 +1,5 @@
-# ============================================
-# ШАБЛОН ПРОЕКТИРОВАНИЯ: FACTORY METHOD
+# Шаблон проектирования: FACTORY METHOD
 # Фабрика, создающая подходящий парсер по имени источника
-# ============================================
 
 from ..parser import OtzyvruParser
 
@@ -22,8 +20,6 @@ class ParserFactory:
         if source == "otzyvru":
             return OtzyvruParser(url, save_path, log_path)
 
-        # здесь можно расширять
-        # elif source == "flamp":
-        #     return FlampParser(url, save_path, log_path)
+        # здесь можно расширять (для других парсеров)
 
         raise ValueError(f"Неизвестный тип источника: {source}")
