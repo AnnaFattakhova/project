@@ -1,7 +1,5 @@
-# =====================================================
 # ШАБЛОН ПРОЕКТИРОВАНИЯ: STRATEGY
 # Разные стратегии подсчёта статистики по JSON-файлам
-# =====================================================
 
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -17,7 +15,7 @@ class AggregationStrategy(ABC):
         pass
 
 
-# ---------- Базовая стратегия ----------
+# Базовая стратегия
 class BasicAggregationStrategy(AggregationStrategy):
     """
     Базовая стратегия:
@@ -46,7 +44,7 @@ class BasicAggregationStrategy(AggregationStrategy):
         }
 
 
-# ---------- Расширенная стратегия ----------
+# Расширенная стратегия 
 class ExtendedAggregationStrategy(AggregationStrategy):
     """
     Расширенная стратегия:
