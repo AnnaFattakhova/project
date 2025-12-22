@@ -1,5 +1,6 @@
-# Общая логика проекта
+Структура проекта
 
+# Общая логика
 project/
 │
 ├── parsing_1/
@@ -117,3 +118,5 @@ project/
 │   │   └── visualization.log
 │   │
 └── └── visualization_pipeline.py
+
+
