@@ -4,10 +4,6 @@
 import sys
 from pathlib import Path
 
-# ======================================================
-# FIX PYTHON PATH
-# ======================================================
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -20,10 +16,7 @@ from visualization_4.visualization_pipeline import (
     VisualizationDataError,
 )
 
-
-# ======================================================
-# TEST 1. resolve_column: корректный алиас
-# ======================================================
+# TEST 1. Корректные названия колонок
 
 def test_resolve_column_finds_alias():
     """
@@ -38,9 +31,7 @@ def test_resolve_column_finds_alias():
     assert col == "stars"
 
 
-# ======================================================
-# TEST 2. resolve_column: кастомное исключение
-# ======================================================
+# TEST 2. Созданное исключение
 
 def test_resolve_column_raises_custom_error():
     """
