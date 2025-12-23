@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 from __future__ import annotations
 
 import os
@@ -15,9 +12,7 @@ import re
 import spacy
 
 
-# ===============================
 # CONFIG
-# ===============================
 
 @dataclass
 class AspectAnalysisConfig:
@@ -42,9 +37,8 @@ class AspectAnalysisConfig:
     top_examples: int = 3
 
 
-# ===============================
-# LOGGING
-# ===============================
+
+# Логирование
 
 def setup_aspect_logging(config: AspectAnalysisConfig) -> logging.Logger:
     log_dir = os.path.join(config.base_output_dir, config.logs_subdir)
@@ -73,18 +67,15 @@ def setup_aspect_logging(config: AspectAnalysisConfig) -> logging.Logger:
 
     return logger
 
-
-# ===============================
 # Извлечение аспектов
-# ===============================
 
 class AspectExtractor:
     """
     Извлекает аспект-кандидаты из предложений.
-    Используется простой и интерпретируемый подход:
+    Используется подход:
     - токенизация
     - pymorphy2
-    - существительные (NOUN)
+    - существительные
     """
 
     def __init__(self):
@@ -113,10 +104,8 @@ class AspectExtractor:
         return pd.DataFrame(rows)
 
 
-# ===============================
-# DOMAIN-SPECIFIC STOP ASPECTS
-# (мобильные операторы)
-# ===============================
+
+# Стоп-списки для аспектов
 
 ABSTRACT_NOUNS = {
     "вещь", "штука", "момент", "случай", "раз", "день", "время",
@@ -140,9 +129,7 @@ COMPANY_NAMES = {
 }
 
 
-# ===============================
 # Фильтрация аспектов
-# ===============================
 
 class AspectFilter:
     """
@@ -188,9 +175,7 @@ class AspectFilter:
         return df
 
 
-# ===============================
 # Aspect statistics (operator overloading)
-# ===============================
 
 @dataclass(frozen=True)
 class AspectStats:
@@ -215,9 +200,8 @@ class AspectStats:
     def net_sentiment(self) -> float:
         return self.pos_strength - self.neg_strength
 
-# ===============================
+
 # Агрегация аспектов
-# ===============================
 
 class AspectAggregator:
     """
@@ -270,10 +254,7 @@ class AspectAggregator:
 
         return pd.DataFrame(rows)
 
-
-# ===============================
 # spaCy refinement
-# ===============================
 
 class SpacyAspectRefiner:
     """
@@ -327,13 +308,11 @@ class SpacyAspectRefiner:
         return pd.DataFrame(rows)
 
 
-# ===============================
-# Negative reasons
-# ===============================
+# Топ-причины негатива
 
 class NegativeReasonAggregator:
     """
-    Формирует ТОП-причин негатива по темам
+    Формирует ТОП-10 причин негатива по темам
     на основе spaCy-refined аспектов
     """
 
@@ -377,16 +356,10 @@ class NegativeReasonAggregator:
         return df_out
 
 
-# ===============================
-# MAIN PIPELINE
-# ===============================
+
+# Главный пайплайн
 
 class AspectAnalysisPipeline:
-    """
-    ШАГ 3:
-    3.1 — извлечение аспектов
-    3.2 — очистка и фильтрация
-    """
 
     def __init__(self, config: Optional[AspectAnalysisConfig] = None):
         self.config = config or AspectAnalysisConfig()
@@ -410,7 +383,9 @@ class AspectAnalysisPipeline:
         )
         df = pd.read_csv(self.config.input_sentence_file)
 
-        self.logger.info("ШАГ 3.1: извлечение аспектов")
+        # ШАГ 3.1
+		
+		self.logger.info("ШАГ 3.1: извлечение аспектов")
         extractor = AspectExtractor()
         df_aspects = extractor.extract(df)
 
@@ -421,7 +396,9 @@ class AspectAnalysisPipeline:
         df_aspects.to_csv(out_1, index=False, encoding="utf-8-sig")
         self.logger.info(f"Аспекты извлечены и сохранены: {out_1}")
 
-        self.logger.info("ШАГ 3.2: очистка и фильтрация аспектов")
+        # ШАГ 3.2
+		
+		self.logger.info("ШАГ 3.2: очистка и фильтрация аспектов")
         aspect_filter = AspectFilter(
             min_length=self.config.min_aspect_length,
             min_count=self.config.min_aspect_count
@@ -435,11 +412,10 @@ class AspectAnalysisPipeline:
         df_filtered.to_csv(out_2, index=False, encoding="utf-8-sig")
         self.logger.info(f"Отфильтрованные аспекты сохранены в файл: {out_2}")
 
-        # --------------------------------------------------
-        # ШАГ 3.3 — АГРЕГАЦИЯ АСПЕКТОВ
-        # --------------------------------------------------
-
-        self.logger.info("ШАГ 3.3: агрегация аспектов и расчёт статистики")
+        
+        # ШАГ 3.3
+       
+        self.logger.info("ШАГ 3.3: агрегация аспектов и подсчет статистики")
 
         aggregator = AspectAggregator(
             top_examples=self.config.top_examples
@@ -457,9 +433,7 @@ class AspectAnalysisPipeline:
             f"Агрегированный аспектный анализ сохранён: {out_3}"
         )
 
-        # --------------------------------------------------
-        # ШАГ 3.4 — ОТБОР ЗНАЧИМЫХ НЕГАТИВНЫХ АСПЕКТОВ
-        # --------------------------------------------------
+        # ШАГ 3.4 
 
         self.logger.info(
             "ШАГ 3.4: отбор значимых негативных аспектов для углублённого анализа"
@@ -491,9 +465,7 @@ class AspectAnalysisPipeline:
             "с наибольшим вкладом в негатив"
         )
 
-        # --------------------------------------------------
-        # ШАГ 3.5 — spaCy refinement негативных аспектов
-        # --------------------------------------------------
+        # ШАГ 3.5     
 
         self.logger.info(
             "ШАГ 3.5: уточнение негативных аспектов с помощью spaCy"
@@ -514,11 +486,9 @@ class AspectAnalysisPipeline:
         self.logger.info(
             f"spaCy-refined негативные аспекты сохранены: {out_4}"
         )
-
-        # --------------------------------------------------
-        # ШАГ 3.6 — ТОП-причин негатива по темам
-        # --------------------------------------------------
-
+        
+        # ШАГ 3.6
+        
         self.logger.info("ШАГ 3.6: формирование ТОП-причин негатива по темам")
 
         df_refined = pd.read_csv(
@@ -548,4 +518,4 @@ class AspectAnalysisPipeline:
             f"ТОП-причин негатива по темам сохранён: {out_5}"
         )
 
-        self.logger.info("→ ШАГ 3 (baseline) ЗАВЕРШЁН")
+        self.logger.info("→ ШАГ 3 ЗАВЕРШЁН")
