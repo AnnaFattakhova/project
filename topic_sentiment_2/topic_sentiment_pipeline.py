@@ -10,9 +10,7 @@ import pandas as pd
 
 from abc import ABC, abstractmethod
 
-# ======================================================
-# STEP 2.1 — SENTENCE SPLITTER
-# ======================================================
+# Шаг 2.1 — Разделение на предложения
 
 class SentenceSplitter:
     def __init__(self, min_length: int = 2):
@@ -37,9 +35,7 @@ class SentenceSplitter:
         return results
 
 
-# ======================================================
-# STEP 2.2 — SENTIMENT ANALYZER
-# ======================================================
+# Шаг 2.2 — Анализ сентимента
 
 class SentimentAnalyzer:
     def __init__(
@@ -59,7 +55,6 @@ class SentimentAnalyzer:
 
         self.id2label = self.model.config.id2label
 
-    # ← ВАЖНО: метод ВНЕ __init__
     def predict(self, sentences: List[dict], batch_size: int = 32) -> List[dict]:
         import torch
         from torch.nn.functional import softmax
@@ -107,9 +102,8 @@ class SentimentAnalyzer:
         results.sort(key=lambda x: (x["doc_id"], x["sentence_id"]))
         return results
 
-# ======================================================
-# STEP 2.3 — TOPIC ↔ SENTENCE MAPPER
-# ======================================================
+
+# Шаг 2.3 — Мэппинг
 
 class TopicSentenceMapper:
     def __init__(self, topic_model: "BerTopicModel"):
@@ -138,12 +132,9 @@ class TopicSentenceMapper:
             })
 
         return results
+    
 
-    
-    
-# ======================================================
 # Защита от мата
-# ======================================================
 
 class BaseTextDetector(ABC):
     """
@@ -203,8 +194,8 @@ class ProfanityDetector(BaseTextDetector):
 
 class GenderDetector(BaseTextDetector):
     """
-    Эвристический детектор гендера только по тексту:
-    ищем маркеры рода (купил/купила и т.п.).
+    Детектор гендера только по тексту:
+    ищем маркеры рода (купил/купила и т.п.)
     """
 
     def __init__(self):
@@ -261,9 +252,7 @@ class GenderDetector(BaseTextDetector):
         return {"gender": "unknown", "confidence": 0.1, "evidence": "по тексту: маркеры не найдены"}
 
 
-# ======================================================
 # CONFIG
-# ======================================================
 
 @dataclass
 class TopicSentimentConfig:
@@ -354,9 +343,9 @@ class CSVReviewCorpus:
         return df
 
 
-# ======================================================
+
 # PIPELINE
-# ======================================================
+
 
 class TopicSentimentPipeline:
     """
@@ -365,7 +354,7 @@ class TopicSentimentPipeline:
     - sentence-level сентимент
     - сопоставление предложений с темами
     - агрегация сентимента по отзывам
-    - (доп.) детекция нецензурной лексики по отзывам (variant A)
+    - детекция нецензурной лексики и гендера
     """
 
     def __init__(self, config: Optional[TopicSentimentConfig] = None):
@@ -385,10 +374,8 @@ class TopicSentimentPipeline:
         self.df_reviews: Optional[pd.DataFrame] = None
         self.topic_model: Optional[BerTopicModel] = None
 
-    # --------------------------------------------------
-    # LOAD CORPUS
-    # --------------------------------------------------
 
+    # Загрузка корпуса
     def load_corpus(self):
         self.logger.info(f"Загружаем корпуса отзывов из файла: {self.config.corpus_path}")
 
@@ -401,9 +388,8 @@ class TopicSentimentPipeline:
                 f"Ограничение корпуса включено: берём первые {len(self.df_reviews)} из {before} отзывов"
             )
 
-    # --------------------------------------------------
-    # GENDER DETECTION (review-level) — ONLY TEXT
-    # --------------------------------------------------
+
+    # Определение гендера (только по тексту отзыва)
 
     def gender_detection(self):
         self.logger.info("Детекция гендера: по роду глаголов")
@@ -429,9 +415,8 @@ class TopicSentimentPipeline:
         df_out[keep_cols].to_csv(out_path, index=False, encoding="utf-8-sig")
         self.logger.info(f"Таблица гендеров сохранена: {out_path}")
 
-    # --------------------------------------------------
-    # TOPIC MODELING
-    # --------------------------------------------------
+
+    # Topic modelling
 
     def build_topics(self):
         model_path = os.path.join(self.models_dir, self.config.bertopic_model_name)
@@ -475,9 +460,8 @@ class TopicSentimentPipeline:
                 f"BERTopic модель сохранена: {model_path}"
             )
 
-    # --------------------------------------------------
-    # SENTENCE LEVEL
-    # --------------------------------------------------
+
+    # На уровне предложений
 
     def sentence_level_analysis(self):
         self.logger.info("Sentence-level анализ: разбиение отзывов на предложения")
@@ -506,12 +490,11 @@ class TopicSentimentPipeline:
         )
 
         self.logger.info(
-            f"Результаты sentence-level анализа сохранены: {out_path}"
+            f"Результаты sentence-level анализа сохранены в файле: {out_path}"
         )
 
-    # --------------------------------------------------
-    # REVIEW LEVEL
-    # --------------------------------------------------
+
+    # Сравнение с пользовательскими оценками
 
     def review_level_aggregation(self):
         self.logger.info(
@@ -565,16 +548,15 @@ class TopicSentimentPipeline:
         agg.to_csv(out_path, index=False, encoding="utf-8-sig")
 
         self.logger.info(
-            f"Итоговая таблица по отзывам сохранена: {out_path}"
+            f"Итоговая таблица по отзывам сохранена в файле: {out_path}"
         )
 
-        # --------------------------------------------------
-        # DETECTION OF PROFANITY (review-level) — Variant A
-        # --------------------------------------------------
+    
+        # Детекция токсичности
 
         self.logger.info("Поиск нецензурной лексики в отзывах")
 
-        # Собираем таблицу doc_id -> full_text (+ rating если есть, не мешает)
+        # Собираем таблицу doc_id -> full_text
         df_reviews_local = self.df_reviews.reset_index().rename(columns={"index": "doc_id"})
 
         # Присоединяем full_text к агрегированной таблице, чтобы пройтись по тем же отзывам
@@ -608,12 +590,11 @@ class TopicSentimentPipeline:
         )
 
         self.logger.info(
-            f"Таблица токсичности отзывов сохранена: {out_toxicity}"
+            f"Таблица токсичности отзывов сохранена в файле: {out_toxicity}"
         )
 
-    # --------------------------------------------------
+
     # RUN
-    # --------------------------------------------------
 
     def run(self):
         self.logger.info(
