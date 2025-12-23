@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-"""
-Точка входа для шага 3: Aspect-based analysis (baseline)
-"""
+# для шага 3 используется: Aspect-based analysis (baseline)
 
 from aspect_analysis_3.aspect_analysis_pipeline import (
     AspectAnalysisPipeline,
