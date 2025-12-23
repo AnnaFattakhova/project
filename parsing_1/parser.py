@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import os
 import json
 import time
@@ -12,15 +9,10 @@ from dateparser import parse as parse_date
 from functools import wraps
 from abc import ABC, abstractmethod
 
-
-# ========================================
-# Константы и директории
-# ========================================
+# Основная директория
 BASE_DIR = os.path.dirname(__file__)
 
-# ========================================
 # Декоратор логирования
-# ========================================
 def logged(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -29,10 +21,7 @@ def logged(func):
         return func(self, *args, **kwargs)
     return wrapper
 
-
-# ========================================
 # Базовый класс Template Method
-# ========================================
 class BaseParser(ABC):
 
     @logged
@@ -88,9 +77,7 @@ class BaseParser(ABC):
     def save_json(self, suffix=""): pass
 
 
-# ========================================
-# Otzyvru парсер через Requests
-# ========================================
+# Otzyvru парсер (через Requests)
 class OtzyvruParser(BaseParser):
 
     HEADERS = {
@@ -117,9 +104,7 @@ class OtzyvruParser(BaseParser):
         self.logger = None
 
 
-    # ------------------------------------
     # Логирование
-    # ------------------------------------
     def setup_logging(self):
         logger = logging.getLogger(f"parsing.worker.{os.getpid()}")
         logger.setLevel(logging.INFO)
@@ -143,9 +128,9 @@ class OtzyvruParser(BaseParser):
         self.logger = logger
 
 
-    # ------------------------------------
+    
     # Скачать первую страницу
-    # ------------------------------------
+    
     def open_page(self):
         self.logger.info(f"Скачивается первая страница: {self.url}")
         r = requests.get(self.url, headers=self.HEADERS)
@@ -154,9 +139,9 @@ class OtzyvruParser(BaseParser):
         self.soup_first = BeautifulSoup(r.text, "html.parser")
 
 
-    # ------------------------------------
+    
     # Извлечение информации о продукте
-    # ------------------------------------
+    
     def parse_product_info(self):
         try:
             breadcrumbs = self.soup_first.select("div.breadcrumb span[itemprop='name']")
@@ -189,9 +174,9 @@ class OtzyvruParser(BaseParser):
             self.total_reviews_available = None
 
 
-    # ------------------------------------
+    
     # Пагинация
-    # ------------------------------------
+    
     def load_all_reviews(self):
         self.logger.info("Загружаются все страницы отзывов")
 
@@ -218,9 +203,9 @@ class OtzyvruParser(BaseParser):
         self.logger.info(f"Всего страниц скачано: {len(self.pages_html)}")
 
 
-    # ------------------------------------
+    
     # Извлечение отзывов
-    # ------------------------------------
+    
     def extract_reviews(self):
         self.logger.info("Извлекаются отзывы")
 
@@ -294,10 +279,9 @@ class OtzyvruParser(BaseParser):
                 "Не удалось определить заявленное число отзывов → сравнение пропущено"
             )
 
-
-    # ------------------------------------
+    
     # Подсчёт слов
-    # ------------------------------------
+    
     def count_words(self):
         return sum(
             len(r["text"].split())
@@ -306,9 +290,8 @@ class OtzyvruParser(BaseParser):
         )
 
 
-    # ------------------------------------
     # Сохранение результатов
-    # ------------------------------------
+    
     def save_json(self, suffix=""):
         word_count = self.count_words()
 
