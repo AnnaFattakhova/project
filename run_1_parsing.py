@@ -1,10 +1,8 @@
-# ============================================================
-# # run_parsing.py — главный пайплайн шага 1
+# run_parsing.py — главный пайплайн шага 1
 # Использует:
 #   - Factory Method (ParserFactory)
 #   - Strategy (ExtendedAggregationStrategy)
 #   - отдельный модуль collect_company_urls.py
-# ============================================================
 
 import os
 import time
@@ -12,21 +10,20 @@ import tracemalloc
 import logging
 from multiprocessing import Pool, cpu_count
 
-# --- импорт фабрики парсеров (Factory Method) ---
+#  Импорт фабрики парсеров (Factory Method) 
 from parsing_1.factories.parser_factory import ParserFactory
 
-# --- импорт стратегий агрегации (Strategy Pattern) ---
+#  Импорт стратегий агрегации (Strategy Pattern) 
 from parsing_1.strategies.aggregation_strategy import ExtendedAggregationStrategy
 
-# --- импорт агрегатора ---
+#  Импорт агрегатора 
 from parsing_1.aggregator.summary_aggregator import SummaryAggregator
 
-# --- импорт Selenium-сборщика URL ---
+#  Импорт Selenium-сборщика URL 
 from parsing_1.collect_company_urls import OtzyvruCompanyCollector
 
-# ============================================================
-# Логирование парсинга (multiprocessing-safe)
-# ============================================================
+
+# Логирование парсинга 
 def setup_parsing_logging(log_path="parsing.log"):
     logger = logging.getLogger("parsing")
     logger.setLevel(logging.INFO)
@@ -50,9 +47,9 @@ def setup_parsing_logging(log_path="parsing.log"):
 
     return logger
 
-# ============================================================
+
 # Одна задача (использует фабрику для создания парсера)
-# ============================================================
+
 def run_one_url(args):
     url, save_json, save_log, source = args
 
@@ -67,17 +64,15 @@ def run_one_url(args):
     return url
 
 
-# ============================================================
 # Итератор по партиям
-# ============================================================
+
 def chunked(lst, size):
     for i in range(0, len(lst), size):
         yield lst[i:i + size]
 
 
-# ============================================================
-#                  ГЛАВНЫЙ ПАЙПЛАЙН
-# ============================================================
+# Главный пайплайн
+
 if __name__ == "__main__":
 
     BASE_DIR = os.path.dirname(__file__)
@@ -102,13 +97,12 @@ if __name__ == "__main__":
     )
 
 
-
-    # ===== старт измерения общих ресурсов =====
+    # Старт измерения затраченных ресурсов
     total_start = time.perf_counter()
     tracemalloc.start()
 
 
-    # === URL категории ===
+    # URL категории
     CATEGORY = "https://www.otzyvru.com/companies/operatory-mobilnoy-svyazi/" # Страховые https://www.otzyvru.com/biznes-i-finansy/strahovye-kompanii/ # Грузоперевозки: https://www.otzyvru.com/companies/gruzoperevozki/ Операторы мобильной связи: https://www.otzyvru.com/companies/operatory-mobilnoy-svyazi/
 
     logger.info("→ Сбор ссылок на компании запущен")
@@ -129,7 +123,7 @@ if __name__ == "__main__":
     for u in urls:
         logger.info(f" → {u}")
 
-    # === Формирование задач ===
+    # Формирование задач 
     tasks = [
         (
             url,
@@ -147,7 +141,7 @@ if __name__ == "__main__":
     logger.info(f"Используется ядер CPU: {cpu_cores}")
     logger.info(f"Количество задач: {len(tasks)}")
 
-    # === Обработка по партиям ===
+    #  Обработка по партиям 
     for batch_num, batch in enumerate(chunked(tasks, batch_size), start=1):
 
         logger.info(f"Запуск партии {batch_num} ({len(batch)} задач)")
@@ -158,7 +152,7 @@ if __name__ == "__main__":
 
         logger.info(f"Партия {batch_num} завершена")
 
-    # ===== замер общих ресурсов =====
+    # Замер общих ресурсов
     try:
         current, peak = tracemalloc.get_traced_memory()
     finally:
@@ -172,9 +166,9 @@ if __name__ == "__main__":
         f"пик памяти: {peak_mb:.2f} МБ"
     )
 
-   # ============================================================
-   #               АГРЕГАЦИЯ JSON-файлов (Strategy)
-   # ============================================================
+   
+   #Агрегация JSON-файлов (Strategy)
+   
     logger.info("→ Сбор статистики запущен")
 
     aggregator = SummaryAggregator(
@@ -182,7 +176,7 @@ if __name__ == "__main__":
         strategy=ExtendedAggregationStrategy()
     )
 
-    # единый сахарный метод: summary + all_reviews + JSON
+    # единый метод: summary + all_reviews + JSON
     outputs = aggregator.save_all_outputs(AGGREGATOR_DIR)
 
     logger.info("Агрегация завершена. Созданы файлы:")
