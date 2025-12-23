@@ -1,11 +1,12 @@
 from __future__ import annotations
+# все аннотации типов в этом файле будут храниться как строки и вычисляться позже, а не сразу при загрузке модуля
 
 import os
 import logging
 from dataclasses import dataclass
 from typing import Optional, List
 import re
-from typing import Dict
+from typing import Dict #обобщённый тип, который позволяет уточнять типы ключей и значений
 import pandas as pd
 
 from abc import ABC, abstractmethod
@@ -40,39 +41,50 @@ class SentenceSplitter:
 class SentimentAnalyzer:
     def __init__(
         self,
-        model_name: str = "cointegrated/rubert-tiny-sentiment-balanced",
+        model_name: str = "cointegrated/rubert-tiny-sentiment-balanced", # выбрана эта модель, так как она доступна + давала хороший результат на русском языке на тестах; ссылка: https://huggingface.co/cointegrated/rubert-tiny-sentiment-balanced
         device: Optional[str] = None
     ):
         import torch
         from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
+        # GPU (cuda), если доступен, иначе CPU
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
+        # Загрузка токенизатора и модели из HuggingFace
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(
             model_name
         ).to(self.device)
 
+        # Сопоставление id классов с текстовыми метками (positive / neutral / negative)
         self.id2label = self.model.config.id2label
 
     def predict(self, sentences: List[dict], batch_size: int = 32) -> List[dict]:
         import torch
         from torch.nn.functional import softmax
 
+        # Группируем одинаковые тексты предложений, чтобы не прогонять модель по одному и тому же тексту несколько раз
         text_to_indices: Dict[str, List[int]] = {}
         for idx, s in enumerate(sentences):
             text = s["text"]
             text_to_indices.setdefault(text, []).append(idx)
 
+        # Список уникальных предложений
         unique_texts = list(text_to_indices.keys())
+        
+        # Перевод модели в режим инференса (режим, когда модель только делает предсказания, не обучается и не обновляет веса)
         self.model.eval()
 
+        # Кэш результатов: текст → результат сентимента
         cached_results: Dict[str, Dict] = {}
 
+        # Отключаем вычисление градиентов (ускорение и экономия памяти)
         with torch.no_grad():
+            # Обработка предложений батчами
             for i in range(0, len(unique_texts), batch_size):
                 batch_texts = unique_texts[i : i + batch_size]
 
+                # Токенизация входных текстов
                 inputs = self.tokenizer(
                     batch_texts,
                     padding=True,
@@ -81,9 +93,11 @@ class SentimentAnalyzer:
                     return_tensors="pt"
                 ).to(self.device)
 
+                # Прогон через модель
                 outputs = self.model(**inputs)
                 probs = softmax(outputs.logits, dim=1)
 
+                # Определяем наиболее вероятный класс для каждого текста
                 for text, prob in zip(batch_texts, probs):
                     label_id = int(torch.argmax(prob))
                     cached_results[text] = {
@@ -91,6 +105,7 @@ class SentimentAnalyzer:
                         "sentiment_score": float(prob[label_id])
                     }
 
+        # Восстанавливаем исходный порядок предложений и добавляем к ним предсказанный сентимент
         results = []
         for text, indices in text_to_indices.items():
             for idx in indices:
@@ -99,38 +114,47 @@ class SentimentAnalyzer:
                     **cached_results[text]
                 })
 
+        # Сортировка по документу и позиции предложения
         results.sort(key=lambda x: (x["doc_id"], x["sentence_id"]))
         return results
 
 
-# Шаг 2.3 — Мэппинг
+# Шаг 2.3 — Мэппинг (разметка предложений)
 
 class TopicSentenceMapper:
     def __init__(self, topic_model: "BerTopicModel"):
+        # Модель тематического моделирования (обёртка над BERTopic)
         self.topic_model = topic_model
 
     def map_sentences(self, sentences: List[dict]) -> List[dict]:
+        # Извлекаем тексты предложений для передачи в модель
         texts = [s["text"] for s in sentences]
+
+        # Получаем тему и вероятность темы для каждого предложения
         topics, probs = self.topic_model.transform(texts)
 
         results = []
         for s, t, p in zip(sentences, topics, probs):
-            # p может быть numpy.float64 или массивом вероятностей
+            # Вероятность темы может быть:
+            # - массивом вероятностей по всем темам
+            # - скаляром (в зависимости от конфигурации BERTopic)
             topic_prob = None
             if p is not None:
                 try:
-                    # если p — массив вероятностей
+                    # Если p — массив, берём максимальную вероятность
                     topic_prob = float(max(p))  # type: ignore[arg-type]
                 except TypeError:
-                    # если p — скаляр
+                    # Если p — скаляр, приводим к float
                     topic_prob = float(p)
 
+            # Добавляем информацию о теме к исходному предложению
             results.append({
                 **s,
                 "topic": int(t),
                 "topic_prob": topic_prob
             })
 
+        # Возвращаем список предложений с привязанными темами
         return results
     
 
@@ -277,11 +301,11 @@ from sentence_transformers import SentenceTransformer
 
 @dataclass
 class BerTopicConfig:
-    embedding_model_name: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-    min_topic_size: int = 150
-    n_gram_range: tuple = (1, 2)
-    low_memory: bool = True
-    verbose: bool = True
+    embedding_model_name: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2" # ссылка: https://huggingface.co/sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+    min_topic_size: int = 150 # минимальное количество предложений, которое нужно, чтобы тема считалась отдельной
+    n_gram_range: tuple = (1, 2) # n-граммы, которые используются при формировании названий тем
+    low_memory: bool = True # режим экономии памяти в BERTopic.
+    verbose: bool = True # подробный вывод логов BERTopic.
 
 
 class BerTopicModel:
@@ -379,10 +403,10 @@ class TopicSentimentPipeline:
     def load_corpus(self):
         self.logger.info(f"Загружаем корпуса отзывов из файла: {self.config.corpus_path}")
 
-        corpus = CSVReviewCorpus(self.config.corpus_path)
+        corpus = CSVReviewCorpus(self.config.corpus_path) # CSVReviewCorpus инкапсулирует логику чтения CSV
         self.df_reviews = corpus.load()
         if self.config.max_reviews is not None:
-            before = len(self.df_reviews)
+            before = len(self.df_reviews) # сохраняем исходный размер корпуса (для логов: чтобы понимать, насколько корпус был урезан)
             self.df_reviews = self.df_reviews.iloc[: self.config.max_reviews].reset_index(drop=True)
             self.logger.info(
                 f"Ограничение корпуса включено: берём первые {len(self.df_reviews)} из {before} отзывов"
@@ -421,7 +445,7 @@ class TopicSentimentPipeline:
     def build_topics(self):
         model_path = os.path.join(self.models_dir, self.config.bertopic_model_name)
 
-        if os.path.exists(model_path):
+        if os.path.exists(model_path): # если модель уже была обучена на этом корпусе
             self.logger.info(
                 f"Загружаем сохранённую BERTopic модель из: {model_path}"
             )
@@ -592,7 +616,7 @@ class TopicSentimentPipeline:
         self.logger.info(
             f"Таблица токсичности отзывов сохранена в файле: {out_toxicity}"
         )
-
+        
 
     # RUN
 
