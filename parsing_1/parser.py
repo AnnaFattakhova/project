@@ -127,9 +127,8 @@ class OtzyvruParser(BaseParser):
 
         self.logger = logger
 
-
     
-    # Скачать первую страницу
+    # Скачиваем первую страницу
     
     def open_page(self):
         self.logger.info(f"Скачивается первая страница: {self.url}")
@@ -138,9 +137,8 @@ class OtzyvruParser(BaseParser):
         self.pages_html.append(r.text)
         self.soup_first = BeautifulSoup(r.text, "html.parser")
 
-
     
-    # Извлечение информации о продукте
+    # Извлекаем информации о компании
     
     def parse_product_info(self):
         try:
@@ -173,7 +171,6 @@ class OtzyvruParser(BaseParser):
             self.logger.error(f"Ошибка при получении количества отзывов: {e}")
             self.total_reviews_available = None
 
-
     
     # Пагинация
     
@@ -203,7 +200,6 @@ class OtzyvruParser(BaseParser):
         self.logger.info(f"Всего страниц скачано: {len(self.pages_html)}")
 
 
-    
     # Извлечение отзывов
     
     def extract_reviews(self):
