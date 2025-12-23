@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import logging
 from pathlib import Path
 from abc import ABC, abstractmethod
@@ -9,10 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
-# ======================================================
-# PATHS
-# ======================================================
+# Директории
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
@@ -24,9 +18,7 @@ FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ======================================================
-# LOGGING
-# ======================================================
+# Логирование
 
 LOG_FILE = LOG_DIR / "visualization.log"
 
@@ -41,20 +33,15 @@ logging.basicConfig(
 
 logger = logging.getLogger("VisualizationPipeline")
 
-# ======================================================
-# CUSTOM EXCEPTION
-# ======================================================
+
+# Собственнное исключение
 
 class VisualizationDataError(Exception):
     """
-    Ошибка данных для шага визуализации:
-    отсутствующие или некорректные колонки.
+    Ошибка данных: отсутствующие или некорректные колонки.
     """
     pass
 
-# ======================================================
-# COLUMN ALIASES (КЛЮЧЕВОЙ БЛОК)
-# ======================================================
 
 COLUMN_ALIASES = {
         "sentiment": [
@@ -106,10 +93,7 @@ def resolve_column(df: pd.DataFrame, logical_name: str) -> str:
     )
 
 
-
-# ======================================================
-# BASE VISUALIZER (Template Method)
-# ======================================================
+# Базовый визуализатор (Template Method)
 
 class BaseVisualizer(ABC):
 
@@ -143,9 +127,7 @@ class BaseVisualizer(ABC):
         self.logger.info(f"Фигура сохранена: {out_path}")
 
 
-# ======================================================
-# 1. SENTIMENT vs RATING
-# ======================================================
+# 1. Сентимент vs рейтинг
 
 class SentimentRatingVisualizer(BaseVisualizer):
 
@@ -182,9 +164,7 @@ class SentimentRatingVisualizer(BaseVisualizer):
         return fig
 
 
-# ======================================================
-# 2. AVERAGE SENTIMENT BY TOPIC
-# ======================================================
+# 2. Средний сентимент по темам
 
 class TopicSentimentVisualizer(BaseVisualizer):
 
@@ -226,10 +206,7 @@ class TopicSentimentVisualizer(BaseVisualizer):
 
         return fig
 
-
-# ======================================================
-# 3. TOP NEGATIVE ASPECTS
-# ======================================================
+# 3. Топ негативный аспектов
 
 class NegativeAspectVisualizer(BaseVisualizer):
 
@@ -266,10 +243,7 @@ class NegativeAspectVisualizer(BaseVisualizer):
 
         return fig
 
-
-# ======================================================
-# PIPELINE
-# ======================================================
+# Основной пайплайн
 
 class VisualizationPipeline:
 
@@ -281,7 +255,7 @@ class VisualizationPipeline:
         ]
 
     def run(self):
-        logger.info("=== СТАРТ ШАГА 4: ВИЗУАЛИЗАЦИЯ ===")
+        logger.info("→ СТАРТ ШАГА 4: ВИЗУАЛИЗАЦИЯ")
 
         for vis in self.visualizers:
             logger.info(vis.name)
@@ -290,4 +264,4 @@ class VisualizationPipeline:
             except Exception:
                 logger.exception(f"Ошибка в визуализаторе {vis.name}")
 
-        logger.info("=== ШАГ 4 ЗАВЕРШЁН ===")
+        logger.info("→ ШАГ 4 ЗАВЕРШЁН")
