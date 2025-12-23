@@ -1,6 +1,3 @@
-# collect_company_urls.py
-# ООП-класс для получения списка компаний на OtzyvRu
-
 import os
 import logging
 import time
@@ -13,24 +10,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-# ============================================================
-# Константы селекторов
-# ============================================================
+# Константы селекторов (специальные шаблоны, которые используются для точного определения и извлечения нужных данных)
 SLIDER_SELECTOR = "div.horizontal-scrolling.slider-ready"
 COMPANY_LINK_SELECTOR = SLIDER_SELECTOR + " a[href]"
 BASE_DIR = os.path.dirname(__file__)
 LOG_DIR = BASE_DIR 
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# ============================================================
 # Логирование
-# ============================================================
 def setup_collect_logging(log_path="collect_urls.log"):
     logger = logging.getLogger("parsing.collect")
     logger.setLevel(logging.INFO)
     log_path = os.path.join(LOG_DIR, log_path) 
 
-    # очищаем хендлеры, если были
+    # очищаем хендлеры, если были (функции или методы, которые выполняют конкретные действия с данными после того, как парсер извлек их)
     for h in logger.handlers[:]:
         logger.removeHandler(h)
 
@@ -50,9 +43,6 @@ def setup_collect_logging(log_path="collect_urls.log"):
     return logger
 
 
-# ============================================================
-# ООП-КЛАСС — РЕКОМЕНДАЦИЯ 1
-# ============================================================
 class OtzyvruCompanyCollector:
     """
     Сборщик URL компаний для одной категории сайта OtzyvRu.
@@ -64,7 +54,7 @@ class OtzyvruCompanyCollector:
         self.headless = headless
         self.logger = setup_collect_logging(log_path)
 
-    # ====== Создание Selenium драйвера ======
+    # Создание Selenium драйвера
     def _create_driver(self):
         opts = Options()
         if self.headless:
@@ -73,7 +63,7 @@ class OtzyvruCompanyCollector:
         opts.add_argument("--disable-gpu")
         return webdriver.Chrome(options=opts)
 
-    # ====== Основной метод ======
+    # Основной метод сбора ссылок
     def collect(self):
         """
         Возвращает отсортированный список URL компаний категории.
@@ -84,12 +74,11 @@ class OtzyvruCompanyCollector:
 
         driver = self._create_driver()
 
-        # === РЕКОМЕНДАЦИЯ 2: driver.quit() в finally ===
         try:
             driver.get(self.category_url)
             self.logger.info("Страница категории загружена, ожидается появление slider-блоков.")
 
-            # --- 1. Ждём появления слайдеров ---
+            #  1. Ждём появления слайдеров 
             slider_blocks = WebDriverWait(driver, 15).until(
                 EC.presence_of_all_elements_located(
                     (By.CSS_SELECTOR, SLIDER_SELECTOR)
@@ -97,7 +86,7 @@ class OtzyvruCompanyCollector:
             )
             self.logger.info(f"Найдено slider-блоков: {len(slider_blocks)}")
 
-            # --- 2. Прокручиваем lazy-loaded блоки ---
+            #  2. Прокручиваем lazy-loaded блоки 
             for i, block in enumerate(slider_blocks, start=1):
                 try:
                     self.logger.info(f"Прокрутка slider-блока #{i}...")
@@ -108,7 +97,7 @@ class OtzyvruCompanyCollector:
                 except Exception as e:
                     self.logger.warning(f"Прокрутка #{i} не удалась: {e}")
 
-            # --- 3. Ждём появления ссылок ---
+            #  3. Ждём появления ссылок 
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
                     (By.CSS_SELECTOR, COMPANY_LINK_SELECTOR)
@@ -118,11 +107,11 @@ class OtzyvruCompanyCollector:
 
             time.sleep(1)
 
-            # --- 4. HTML → BS4 ---
+            #  4. HTML → BS4 
             html = driver.page_source
             soup = BeautifulSoup(html, "html.parser")
 
-            # --- 5. Извлекаем ссылки ---
+            #  5. Извлекаем ссылки 
             nodes = soup.select(COMPANY_LINK_SELECTOR)
             self.logger.info(f"Ссылок найдено(a[href]): {len(nodes)}")
 
@@ -133,7 +122,7 @@ class OtzyvruCompanyCollector:
 
             self.logger.info(f"Из них уникальные: {len(urls)}")
 
-            # --- 6. Нормализация URL ---
+            #  6. Нормализация URL 
             abs_urls = []
             for u in urls:
                 if u.startswith("https://www.otzyvru.com"):
