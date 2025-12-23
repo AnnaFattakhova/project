@@ -1,16 +1,11 @@
-# TEST 1 — проверяет, что стоп-аспекты удаляются; слишком короткие аспекты удаляются
-# TEST 2 — проверяет корректность перегрузки оператора
+# TEST 1 — проверяет, что стоп-аспекты и слишком короткие удаляются
+# TEST 2 — проверяет корректность перезагрузки оператора
 
 import sys
 from pathlib import Path
 
-# ======================================================
-# FIX PYTHON PATH (как в test_1.py и test_2.py)
-# ======================================================
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
-
 
 import pandas as pd
 
@@ -19,10 +14,7 @@ from aspect_analysis_3.aspect_analysis_pipeline import (
     AspectStats,
 )
 
-
-# ======================================================
 # TEST 1. AspectFilter: стоп-аспекты и длина
-# ======================================================
 
 def test_aspect_filter_removes_stop_and_short_aspects():
 
@@ -42,9 +34,7 @@ def test_aspect_filter_removes_stop_and_short_aspects():
     assert "доставка" in aspects        # валидный аспект
 
 
-# ======================================================
-# TEST 2. AspectStats: перегрузка оператора +
-# ======================================================
+# TEST 2. AspectStats: перезагрузка оператора +
 
 def test_aspect_stats_add_operator():
 
