@@ -27,15 +27,18 @@ def setup_collect_logging(log_path="collect_urls.log"):
     for h in logger.handlers[:]:
         logger.removeHandler(h)
 
+    # Формат сообщений логгера: время сообщение
     formatter = logging.Formatter(
         "%(asctime)s [%(levelname)s] %(message)s",
         "%d.%m.%Y %H:%M:%S"
     )
 
+    # fh = file handler: обработчик, который пишет логи в файл
     fh = logging.FileHandler(log_path, encoding="utf-8", mode="w")
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 
+    # ch = console handler: обработчик, который выводит логи в консоль
     ch = logging.StreamHandler()
     ch.setFormatter(formatter)
     logger.addHandler(ch)
