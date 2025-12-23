@@ -37,7 +37,6 @@ class AspectAnalysisConfig:
     top_examples: int = 3
 
 
-
 # Логирование
 
 def setup_aspect_logging(config: AspectAnalysisConfig) -> logging.Logger:
@@ -79,17 +78,26 @@ class AspectExtractor:
     """
 
     def __init__(self):
-        self.morph = pymorphy2.MorphAnalyzer()
+    # Инициализация морфологического анализатора (pymorphy2)
+    self.morph = pymorphy2.MorphAnalyzer()
 
     def extract(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Список для хранения извлечённых аспектов
         rows = []
 
-        for _, row in df.iterrows():
+        # Проходим по строкам DataFrame
+        for _, row in df.iterrows # _ — это имя для переменной, которая нам не нужна.
+            # Берём текст предложения
             text = str(row["text"])
+
+            # Токенизация: извлекаем слова на кириллице
             tokens = re.findall(r"[а-яА-ЯёЁ]+", text)
 
             for t in tokens:
+                # Морфологический разбор токена
                 parsed = self.morph.parse(t)[0]
+
+                # Отбираем только существительные для кандидатов в аспекты
                 if parsed.tag.POS == "NOUN":
                     rows.append({
                         "doc_id": row["doc_id"],
@@ -101,8 +109,8 @@ class AspectExtractor:
                         "text": text
                     })
 
+        # Возвращаем результат в виде DataFrame
         return pd.DataFrame(rows)
-
 
 
 # Стоп-списки для аспектов
@@ -140,7 +148,7 @@ class AspectFilter:
     """
 
     STOP_ASPECTS = (
-        ABSTRACT_NOUNS
+        ABSTRACT_NOUNS # Объединение
         | META_ENTITIES
         | DISCOURSE_NOUNS
         | COMPANY_NAMES
@@ -177,17 +185,28 @@ class AspectFilter:
 
 # Aspect statistics (operator overloading)
 
-@dataclass(frozen=True)
+@dataclass(frozen=True) # frozen=True делает объект неизменяемым (т.к. статистика накапливается через сложение → нет риска случайно изменить объект)
 class AspectStats:
+    # Общее число упоминаний аспекта
     mentions: int = 0
+
+    # Количество позитивных упоминаний
     pos_mentions: int = 0
+
+    # Количество негативных упоминаний
     neg_mentions: int = 0
+
+    # Суммарная сила позитивного сентимента
     pos_strength: float = 0.0
+
+    # Суммарная сила негативного сентимента
     neg_strength: float = 0.0
 
-    def __add__(self, other: "AspectStats") -> "AspectStats":  # перегрузка оператора
+    def __add__(self, other: "AspectStats") -> "AspectStats":
+        # Перегрузка оператора: позволяет суммировать статистику двух аспектов
         if not isinstance(other, AspectStats):
             return NotImplemented
+
         return AspectStats(
             mentions=self.mentions + other.mentions,
             pos_mentions=self.pos_mentions + other.pos_mentions,
@@ -198,6 +217,7 @@ class AspectStats:
 
     @property
     def net_sentiment(self) -> float:
+        # Итоговый сентимент: разница между позитивом и негативом
         return self.pos_strength - self.neg_strength
 
 
@@ -259,21 +279,25 @@ class AspectAggregator:
 class SpacyAspectRefiner:
     """
     Уточнение негативных аспектов
-    с помощью spaCy (noun chunks)
+    с помощью spaCy (на основе синтаксического анализа)
     """
 
     def __init__(self):
+        # Загрузка русской модели spaCy
         self.nlp = spacy.load("ru_core_news_sm")
 
     def refine(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Список для хранения уточнённых аспектов
         rows = []
 
+        # Проходим по строкам DataFrame
         for _, row in df.iterrows():
+            # Синтаксический разбор текста предложения
             doc = self.nlp(row["text"])
             candidates = []
 
             for token in doc:
-                # 1 прилагательное + существительное
+                # Шаблон 1: прилагательное + существительное
                 if token.pos_ == "NOUN":
                     modifiers = [
                         child.text
@@ -283,20 +307,23 @@ class SpacyAspectRefiner:
                     if modifiers:
                         candidates.append(" ".join(modifiers + [token.lemma_]))
                     else:
+                        # Если модификаторов нет — берём только существительное
                         candidates.append(token.lemma_)
 
-                # 2 составные существительные (род.п.)
+                # Шаблон 2: NP (родительный падеж)
                 if token.dep_ == "nmod" and token.head.pos_ == "NOUN":
                     candidates.append(
                         f"{token.head.lemma_} {token.lemma_}"
                     )
 
+            # Выбираем уточнённый аспект, который содержит исходный нормализованный аспект
             refined = None
             for c in candidates:
                 if row["aspect_norm"] in c:
                     refined = c
                     break
 
+            # Сохраняем результат (если не нашли уточнение — оставляем исходный аспект)
             rows.append({
                 "topic": row["topic"],
                 "aspect_original": row["aspect_norm"],
@@ -305,6 +332,7 @@ class SpacyAspectRefiner:
                 "text": row["text"],
             })
 
+        # Возвращаем результат в виде DataFrame
         return pd.DataFrame(rows)
 
 
@@ -384,8 +412,8 @@ class AspectAnalysisPipeline:
         df = pd.read_csv(self.config.input_sentence_file)
 
         # ШАГ 3.1
-		
-		self.logger.info("ШАГ 3.1: извлечение аспектов")
+       
+        self.logger.info("ШАГ 3.1: извлечение аспектов")
         extractor = AspectExtractor()
         df_aspects = extractor.extract(df)
 
@@ -397,8 +425,8 @@ class AspectAnalysisPipeline:
         self.logger.info(f"Аспекты извлечены и сохранены: {out_1}")
 
         # ШАГ 3.2
-		
-		self.logger.info("ШАГ 3.2: очистка и фильтрация аспектов")
+       
+        self.logger.info("ШАГ 3.2: очистка и фильтрация аспектов")
         aspect_filter = AspectFilter(
             min_length=self.config.min_aspect_length,
             min_count=self.config.min_aspect_count
