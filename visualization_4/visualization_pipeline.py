@@ -81,17 +81,21 @@ def resolve_column(df: pd.DataFrame, logical_name: str) -> str:
     """
     Возвращает реальное имя колонки по логическому имени.
     """
+    # Получаем список возможных реальных имён колонок для заданного логического имени (например: "rating")
     candidates = COLUMN_ALIASES.get(logical_name, [])
+
+    # Проверяем, есть ли хотя бы один из них в DataFrame
     for col in candidates:
         if col in df.columns:
+            # Как только нашли подходящую колонку — возвращаем её имя
             return col
 
+    # Если не найдено — собсвенное исключение
     raise VisualizationDataError(
         f"Не найдена колонка для '{logical_name}'. "
         f"Пробовали: {candidates}. "
         f"Доступные колонки: {df.columns.tolist()}"
     )
-
 
 # Базовый визуализатор (Template Method)
 
