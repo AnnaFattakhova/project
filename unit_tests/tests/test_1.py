@@ -1,6 +1,6 @@
 # TEST 1 — демонстрирует Factory Method
-# TEST 2 — проверяет ключевой бизнес-инвариант (px → рейтинг)
-# TEST 3 — документирует fallback-поведение при отсутствии HTML-данных
+# TEST 2 — проверяет извлечение рейтинга
+# TEST 3 — проверяет поведение при отсутствии HTML-данных
 
 import sys
 from pathlib import Path
@@ -15,10 +15,7 @@ import pytest
 from parsing_1.parser import OtzyvruParser
 from parsing_1.factories.parser_factory import ParserFactory
 
-
-# ======================================================
 # TEST 1. ParserFactory (Factory Method)
-# ======================================================
 
 def test_parser_factory_creates_otzyvru_parser():
     parser = ParserFactory.create_parser(
@@ -40,9 +37,7 @@ def test_parser_factory_unknown_source():
         )
 
 
-# ======================================================
 # TEST 2. Извлечение рейтинга по ширине
-# ======================================================
 
 def test_extract_rating_from_style():
     # 39px → 3 звезды при шаге 13
@@ -62,9 +57,7 @@ def test_extract_rating_invalid_style_fallback():
     assert rating == "—"
 
 
-# ======================================================
-# TEST 3. Edge cases: отсутствие данных
-# ======================================================
+# TEST 3. Поведение при отсутствии соответствующих данных на странице
 
 def test_review_missing_fields_fallbacks():
     mock_review = MagicMock()
@@ -73,7 +66,7 @@ def test_review_missing_fields_fallbacks():
     mock_review.find_element.side_effect = Exception("element not found")
     mock_review.find_elements.return_value = []
 
-    # ---- title ----
+    # title 
     try:
         title = mock_review.find_element().text
     except Exception:
@@ -81,12 +74,12 @@ def test_review_missing_fields_fallbacks():
 
     assert title == "—"
 
-    # ---- advantages ----
+    # advantages 
     advantages = mock_review.find_elements()
     advantages = advantages if advantages else "—"
     assert advantages == "—"
 
-    # ---- disadvantages ----
+    # disadvantages 
     disadvantages = mock_review.find_elements()
     disadvantages = disadvantages if disadvantages else "—"
     assert disadvantages == "—"
